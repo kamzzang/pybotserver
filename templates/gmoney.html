@@ -47,7 +47,8 @@ for (var i = 0; i < positions.length; i ++) {
 
     // 마커에 표시할 인포윈도우를 생성합니다
     var infowindow = new kakao.maps.InfoWindow({
-        content: titles[i].title // 인포윈도우에 표시할 내용
+        content: titles[i].title, // 인포윈도우에 표시할 내용
+        removable : true // 인포윈도우를 닫을 수 있는 x버튼이 표시
     });
 
     // 마커에 mouseover 이벤트와 mouseout 이벤트를 등록합니다
