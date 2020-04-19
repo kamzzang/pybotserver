@@ -1,8 +1,7 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for
 import pandas as pd
 import sys
 import sqlite3
-
 application = Flask(__name__)
 
 # df = pd.read_csv('./data/gmoney_dongbaek_store_geo.csv', encoding='euc-kr')
@@ -13,36 +12,65 @@ con.close()
 df['경도'] = df['경도'].astype(float)
 df['위도'] = df['위도'].astype(float)
 
-# 동백2동 주민센터 기준으로 적용
-center_lat = 37.2732065 # df['위도'].mean()
-center_lng = 127.1515643 # df['경도'].mean()
+dong_list = list(df['동'].unique())
+dong_list.sort()
+selected_dong='동백동'
 
-lats = list(df['위도'].values)
-lngs = list(df['경도'].values)
+data = df[df['동']== selected_dong]
+
+lats = list(data['위도'].values)
+lngs = list(data['경도'].values)
 
 @application.route("/")
 def hello():
-    massage = "경기도 용인시 기흥구 지역화폐(Y페이) 가맹점 검색 사이트입니다."
-    return massage
+    return render_template("index.html")
 
 @application.route('/gmoney')
 def gmoney():
     return render_template("gmoney.html",
-                           loc='기흥구',
-                           center_lat = center_lat,
-                           center_lng = center_lng,
-                           titles = list(df['상호명'].values),
-                           pos_data = zip(lats, lngs)
-                           )
+                    selected_dong = selected_dong,
+                    dong_list = dong_list,
+                    center_lat = data['위도'].mean(), 
+                    center_lng = data['경도'].mean(),
+                    titles = list(data['상호명'].values),
+                    pos_data = zip(lats, lngs)
+                    )
+
+@application.route('/naver')
+def naver():
+    return render_template("gmoneyNaver.html")
 
 @application.route('/kakao')
 def kakao():
     return render_template("gmoneykakao.html")
 
 @application.route('/ex')
-def index():#titles, lats, lngs):
-    return render_template("gmoneyex.html")
+def index():
+    return render_template("gmoney_ex.html",
+                    selected_dong = selected_dong,
+                    dong_list = dong_list,
+                    center_lat = data['위도'].mean(), 
+                    center_lng = data['경도'].mean(),
+                    titles = list(data['상호명'].values),
+                    pos_data = zip(lats, lngs)
+                    )
 
+@application.route('/gmoney/search', methods=['GET','POST'])
+def search():
+    if request.method == 'POST':
+        selected_dong = request.form.get('select')
+
+        data = df[df['동']==selected_dong]
+        lats = list(data['위도'].values)
+        lngs = list(data['경도'].values)
+        return render_template("gmoney.html", 
+                    selected_dong = selected_dong,
+                    dong_list = dong_list,
+                    center_lat = data['위도'].mean(), 
+                    center_lng = data['경도'].mean(),
+                    titles = list(data['상호명'].values),
+                    pos_data = zip(lats, lngs)
+                    )
 
 if __name__ == "__main__":
-    application.run(host='0.0.0.0', port=5000)
+    application.run(host='0.0.0.0', port=5000, debug=True)

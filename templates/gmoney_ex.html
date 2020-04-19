@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<title>경기도 지역화폐 가맹점</title>
+<title>용인시 {{loc}} 지역화폐 가맹점</title>
 <style>
     html,
     body {
@@ -14,11 +14,12 @@
 {% endblock %}
 
 {% block body %}
-<h1>용인시 기흥구 지역화폐 가맹점 찾기</h1>
+<h1>경기지역화폐 {{loc}} 가맹점 찾기</h1>
 
 <form action='{{ url_for("search") }}' method='POST'>
     <div class="input-group">
         <select class="custom-select" id="select" name="select">
+            <!-- <option value="동백동" selected>동백동</option> -->
             {% for dong in dong_list %}
                 {% if dong == selected_dong %}
                     <option value="{{ dong }}" selected>{{ dong }}</option>
@@ -26,6 +27,8 @@
                     <option value="{{ dong }}">{{ dong }}</option>
                 {% endif %}
             {% endfor %}
+            <!-- <option value="마북동">마북동</option>
+            <option value="보정동">보정동</option> -->
         </select>
         <div class="input-group-append">
             <button class="btn btn-outline-secondary" type="submit">Search</button>
