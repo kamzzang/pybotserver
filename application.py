@@ -9,6 +9,7 @@ con = sqlite3.connect("./data/yongin_gmoney_store_giheung.db")
 df = pd.read_sql('select * from giheung', con=con)
 con.close()
 
+df['상호명'] = df['업종'] + '_' + df['상호명']
 df['경도'] = df['경도'].astype(float)
 df['위도'] = df['위도'].astype(float)
 
