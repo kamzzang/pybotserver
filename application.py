@@ -5,18 +5,18 @@ import sqlite3
 application = Flask(__name__)
 
 # df = pd.read_csv('./data/gmoney_dongbaek_store_geo.csv', encoding='euc-kr')
-con = sqlite3.connect("./data/yongin_gmoney_store_giheung.db")
-df = pd.read_sql('select * from giheung', con=con)
+# con = sqlite3.connect("./data/yongin_gmoney_store_giheung.db")
+con = sqlite3.connect("./data/yongin_gmoney_store_giheung_suji.db")
+df = pd.read_sql('select * from store', con=con)
 con.close()
 
-df['상호명'] = df['업종'] + '_' + df['상호명']
 df['경도'] = df['경도'].astype(float)
 df['위도'] = df['위도'].astype(float)
 
-dong_list = list(df['동'].unique())
-dong_list.sort()
+selected_gu='기흥구'
 selected_dong='동백동'
 
+dong_list = list(df[df['도로명주소'].str.contains(selected_gu)]['동'].unique())
 data = df[df['동']== selected_dong]
 
 lats = list(data['위도'].values)
@@ -28,14 +28,15 @@ def hello():
 
 @application.route('/gmoney')
 def gmoney():
-    return render_template("gmoney.html",
-                    selected_dong = selected_dong,
-                    dong_list = dong_list,
-                    center_lat = data['위도'].mean(), 
-                    center_lng = data['경도'].mean(),
-                    titles = list(data['상호명'].values),
-                    pos_data = zip(lats, lngs)
-                    )
+    return render_template("gmoney.html", 
+                        selected_gu = selected_gu,
+                        selected_dong = selected_dong,
+                        dong_list = dong_list,
+                        center_lat = data['위도'].mean(), 
+                        center_lng = data['경도'].mean(),
+                        titles = list(data['상호명'].values),
+                        pos_data = zip(lats, lngs)
+                        )
 
 @application.route('/naver')
 def naver():
@@ -59,12 +60,15 @@ def index():
 @application.route('/gmoney/search', methods=['GET','POST'])
 def search():
     if request.method == 'POST':
-        selected_dong = request.form.get('select')
+        selected_gu = request.form.get('select_gu')
+        selected_dong = request.form.get('select_dong')
+        dong_list = list(df[df['도로명주소'].str.contains(selected_gu)]['동'].unique())
+        data = df[(df['구']==selected_gu) & (df['동']==selected_dong)]
 
-        data = df[df['동']==selected_dong]
         lats = list(data['위도'].values)
         lngs = list(data['경도'].values)
         return render_template("gmoney.html", 
+                    selected_gu = selected_gu,
                     selected_dong = selected_dong,
                     dong_list = dong_list,
                     center_lat = data['위도'].mean(), 
