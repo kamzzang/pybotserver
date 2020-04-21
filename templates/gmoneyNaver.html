@@ -1,55 +1,113 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
-    <title>간단한 지도 표시하기</title>
-    <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=6nk39jrdys"></script>
-</head>
-<body>
+{% extends 'base.html' %}
+
+{% block head %}
+<title>용인시 지역화폐 가맹점 검색 서비스</title>
+<style>
+    html,
+    body {
+        height: 100%;
+        width: 100%;
+        margin: 0px;
+        padding: 0px
+    }
+</style>
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=6nk39jrdys"></script>
+<script type="text/javascript" src="{{ url_for('static', filename = 'MarkerOverlappingRecognizer.js') }}"></script>
+{% endblock %}
+
+{% block body %}
+<br>
+<h1>용인시 {{selected_gu}} {{selected_dong}} 지역화폐 가맹점</h1>
+
+<form action='{{ url_for("search") }}' method='POST'>
+    <div class="input-group">
+            <select class="custom-select" id="select_gu" name="select_gu" onchange="categoryChange(this)">
+                {% for gu in ['기흥구', '수지구'] %}
+                    {% if gu == selected_gu %}
+                        <option value="{{ gu }}" selected>{{ gu }}</option>
+                    {% else %}
+                        <option value="{{ gu }}">{{ gu }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <select class="custom-select" id="select_dong" name="select_dong">
+                {% for dong in dong_list %}
+                    {% if dong == selected_dong %}
+                        <option value="{{ dong }}" selected>{{ dong }}</option>
+                    {% else %}
+                        <option value="{{ dong }}">{{ dong }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <script type="text/javascript">
+            function categoryChange(e) {
+                var giheung = ['고매동',  '공세동',  '구갈동',  '농서동',  '동백동',  '마북동',  '보라동',
+                                '보정동',  '상갈동',  '상하동',  '서천동',  '신갈동',  '언남동',  '영덕동',  '지곡동',  '청덕동',  '하갈동'];
+                var suji = ['고기동', '동천동', '상현동', '성복동', '신봉동', '죽전동', '풍덕천동'];
+                var target = document.getElementById("select_dong");
+            
+                if(e.value == "기흥구") var d = giheung;
+                else if(e.value == "수지구") var d = suji;
+            
+                target.options.length = 0;
+            
+                for (x in d) {
+                    var opt = document.createElement("option");
+                    opt.value = d[x];
+                    opt.innerHTML = d[x];
+                    target.appendChild(opt);
+                }
+            }
+            </script>
+        <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="submit">Search</button>
+        </div>
+    </div>
+</form>
+<br>
 <div id="map" style="width:100%;height:600px"></div>
 
 <script>
-var HOME_PATH = window.HOME_PATH || '.';
-var MARKER_SPRITE_X_OFFSET = 29,
-    MARKER_SPRITE_Y_OFFSET = 50,
-    MARKER_SPRITE_POSITION = {
-        "A0": [0, 0],
-        "B0": [MARKER_SPRITE_X_OFFSET, 0],
-        "C0": [MARKER_SPRITE_X_OFFSET*2, 0],
-        "D0": [MARKER_SPRITE_X_OFFSET*3, 0],
-        "E0": [MARKER_SPRITE_X_OFFSET*4, 0],
-        "F0": [MARKER_SPRITE_X_OFFSET*5, 0],
-        "G0": [MARKER_SPRITE_X_OFFSET*6, 0],
-        "H0": [MARKER_SPRITE_X_OFFSET*7, 0],
-        "I0": [MARKER_SPRITE_X_OFFSET*8, 0],
+var MARKER_ICON_URL = 'https://ssl.pstatic.net/static/maps/img/icons/sp_pins_spot_v3.png';
+var MARKER_HIGHLIGHT_ICON_URL = 'https://ssl.pstatic.net/static/maps/img/icons/sp_pins_spot_v3_over.png';
+    
 
-        "A1": [0, MARKER_SPRITE_Y_OFFSET],
-        "B1": [MARKER_SPRITE_X_OFFSET, MARKER_SPRITE_Y_OFFSET],
-        "C1": [MARKER_SPRITE_X_OFFSET*2, MARKER_SPRITE_Y_OFFSET],
-        "D1": [MARKER_SPRITE_X_OFFSET*3, MARKER_SPRITE_Y_OFFSET],
-        "E1": [MARKER_SPRITE_X_OFFSET*4, MARKER_SPRITE_Y_OFFSET],
-        "F1": [MARKER_SPRITE_X_OFFSET*5, MARKER_SPRITE_Y_OFFSET],
-        "G1": [MARKER_SPRITE_X_OFFSET*6, MARKER_SPRITE_Y_OFFSET],
-        "H1": [MARKER_SPRITE_X_OFFSET*7, MARKER_SPRITE_Y_OFFSET],
-        "I1": [MARKER_SPRITE_X_OFFSET*8, MARKER_SPRITE_Y_OFFSET],
+// 마커를 표시할 위치와 title 객체 배열입니다
+var titles = [];
+{% for title in titles %}
+    titles.push({'title' : "{{ title }}"});
+{% endfor %}
 
-        "A2": [0, MARKER_SPRITE_Y_OFFSET*2],
-        "B2": [MARKER_SPRITE_X_OFFSET, MARKER_SPRITE_Y_OFFSET*2],
-        "C2": [MARKER_SPRITE_X_OFFSET*2, MARKER_SPRITE_Y_OFFSET*2],
-        "D2": [MARKER_SPRITE_X_OFFSET*3, MARKER_SPRITE_Y_OFFSET*2],
-        "E2": [MARKER_SPRITE_X_OFFSET*4, MARKER_SPRITE_Y_OFFSET*2],
-        "F2": [MARKER_SPRITE_X_OFFSET*5, MARKER_SPRITE_Y_OFFSET*2],
-        "G2": [MARKER_SPRITE_X_OFFSET*6, MARKER_SPRITE_Y_OFFSET*2],
-        "H2": [MARKER_SPRITE_X_OFFSET*7, MARKER_SPRITE_Y_OFFSET*2],
-        "I2": [MARKER_SPRITE_X_OFFSET*8, MARKER_SPRITE_Y_OFFSET*2]
-    };
+var positions = [];
+{% for lat, lng in pos_data %}
+    positions.push({'latlng' : new naver.maps.LatLng({{ lat }}, {{ lng }})});
+{% endfor %}
+
+var categories = [];
+{% for i in category %}
+    categories.push({{ i }});
+{% endfor %}
+
 
 var map = new naver.maps.Map('map', {
-    center: new naver.maps.LatLng(37.3595704, 127.105399),
-    zoom: 10
+    center: new naver.maps.LatLng({{center_lat}}, {{center_lng}}),
+    level: 10,
+    zoomControl: true, //줌 컨트롤의 표시 여부
+        zoomControlOptions: { //줌 컨트롤의 옵션
+            position: naver.maps.Position.TOP_RIGHT
+        }
 });
+
+var recognizer = new MarkerOverlappingRecognizer({
+        highlightRect: false,
+        tolerance: 5
+    });
+    
+recognizer.setMap(map);
 
 var bounds = map.getBounds(),
     southWest = bounds.getSW(),
@@ -57,10 +115,32 @@ var bounds = map.getBounds(),
     lngSpan = northEast.lng() - southWest.lng(),
     latSpan = northEast.lat() - southWest.lat();
 
+function highlightMarker(marker) {
+    var icon = marker.getIcon();
+
+    if (icon.url !== MARKER_HIGHLIGHT_ICON_URL) {
+        icon.url = MARKER_HIGHLIGHT_ICON_URL;
+        marker.setIcon(icon);
+    }
+
+    marker.setZIndex(1000);
+}
+
+function unhighlightMarker(marker) {
+    var icon = marker.getIcon();
+
+    if (icon.url === MARKER_HIGHLIGHT_ICON_URL) {
+        icon.url = MARKER_ICON_URL;
+        marker.setIcon(icon);
+    }
+
+    marker.setZIndex(100);
+}
+
 var markers = [],
     infoWindows = [];
 
-for (var key in MARKER_SPRITE_POSITION) {
+    for (var i = 0; i < positions.length; i ++) {
 
     var position = new naver.maps.LatLng(
         southWest.lat() + latSpan * Math.random(),
@@ -68,78 +148,75 @@ for (var key in MARKER_SPRITE_POSITION) {
 
     var marker = new naver.maps.Marker({
         map: map,
-        position: position,
-        title: key,
+        position: positions[i].latlng, // 마커의 위치
+        title: titles[i].title,
         icon: {
-            url: HOME_PATH +'/img/example/sp_pins_spot_v3.png',
+            url: MARKER_ICON_URL,
             size: new naver.maps.Size(24, 37),
             anchor: new naver.maps.Point(12, 37),
-            origin: new naver.maps.Point(MARKER_SPRITE_POSITION[key][0], MARKER_SPRITE_POSITION[key][1])
+            origin: categories[i]
+        },
+        shape: {
+            coords: [11, 0, 9, 0, 6, 1, 4, 2, 2, 4,
+                0, 8, 0, 12, 1, 14, 2, 16, 5, 19,
+                5, 20, 6, 23, 8, 26, 9, 30, 9, 34,
+                13, 34, 13, 30, 14, 26, 16, 23, 17, 20,
+                17, 19, 20, 16, 21, 14, 22, 12, 22, 12,
+                22, 8, 20, 4, 18, 2, 16, 1, 13, 0],
+            type: 'poly'
         },
         zIndex: 100
     });
 
-    var infoWindow = new naver.maps.InfoWindow({
-        content: '<div style="width:150px;text-align:center;padding:10px;">The Letter is <b>"'+ key.substr(0, 1) +'"</b>.</div>'
+    marker.addListener('mouseover', function(e) {
+            highlightMarker(e.overlay);
+    });
+    marker.addListener('mouseout', function(e) {
+        unhighlightMarker(e.overlay);
+    });
+    marker.addListener('click', function(e) {
+        var m = e.overlay;
+
+        alert(m.title);
     });
 
-    markers.push(marker);
-    infoWindows.push(infoWindow);
-};
+    recognizer.add(marker);
 
-naver.maps.Event.addListener(map, 'idle', function() {
-    updateMarkers(map, markers);
-});
+    window.MARKER = marker;
 
-function updateMarkers(map, markers) {
+    };
 
-    var mapBounds = map.getBounds();
-    var marker, position;
+    // var infoWindow = new naver.maps.InfoWindow({
+    //     content: titles[i].title
+    // });
 
-    for (var i = 0; i < markers.length; i++) {
+    
 
-        marker = markers[i]
-        position = marker.getPosition();
+    var overlapCoverMarker = null;
 
-        if (mapBounds.hasLatLng(position)) {
-            showMarker(map, marker);
-        } else {
-            hideMarker(map, marker);
+    naver.maps.Event.addListener(recognizer, 'overlap', function(list) {
+        if (overlapCoverMarker) {
+            unhighlightMarker(overlapCoverMarker);
         }
-    }
-}
 
-function showMarker(map, marker) {
+        overlapCoverMarker = list[0].marker;
 
-    if (marker.setMap()) return;
-    marker.setMap(map);
-}
+        naver.maps.Event.once(overlapCoverMarker, 'mouseout', function() {
+            highlightMarker(overlapCoverMarker);
+        });
+    });
 
-function hideMarker(map, marker) {
+    naver.maps.Event.addListener(recognizer, 'clickItem', function(e) {
+        recognizer.hide();
 
-    if (!marker.setMap()) return;
-    marker.setMap(null);
-}
+        if (overlapCoverMarker) {
+            unhighlightMarker(overlapCoverMarker);
 
-// 해당 마커의 인덱스를 seq라는 클로저 변수로 저장하는 이벤트 핸들러를 반환합니다.
-function getClickHandler(seq) {
-    return function(e) {
-        var marker = markers[seq],
-            infoWindow = infoWindows[seq];
-
-        if (infoWindow.getMap()) {
-            infoWindow.close();
-        } else {
-            infoWindow.open(map, marker);
+            overlapCoverMarker = null;
         }
-    }
-}
+    });
 
-for (var i=0, ii=markers.length; i<ii; i++) {
-    naver.maps.Event.addListener(markers[i], 'click', getClickHandler(i));
-}
+    // map.setZoom(7);
 
 </script>
-</body>
-</html>
-
+{% endblock %}

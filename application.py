@@ -4,8 +4,6 @@ import sys
 import sqlite3
 application = Flask(__name__)
 
-# df = pd.read_csv('./data/gmoney_dongbaek_store_geo.csv', encoding='euc-kr')
-# con = sqlite3.connect("./data/yongin_gmoney_store_giheung.db")
 con = sqlite3.connect("./data/yongin_gmoney_store_giheung_suji.db")
 df = pd.read_sql('select * from store', con=con)
 con.close()
@@ -40,7 +38,21 @@ def gmoney():
 
 @application.route('/naver')
 def naver():
-    return render_template("gmoneyNaver.html")
+    return render_template("gmoneyNaver.html", 
+                        selected_gu = selected_gu,
+                        selected_dong = selected_dong,
+                        dong_list = dong_list,
+                        center_lat = data['위도'].mean(), 
+                        center_lng = data['경도'].mean(),
+                        titles = list(data['상호명'].values),
+                        category = list(data['업종분류'].values),
+                        pos_data = zip(lats, lngs)
+                        )
+
+@application.route('/naverex')
+def naverex():
+    return render_template("naverex.html"
+                        )
 
 @application.route('/kakao')
 def kakao():
@@ -74,6 +86,7 @@ def search():
                     center_lat = data['위도'].mean(), 
                     center_lng = data['경도'].mean(),
                     titles = list(data['상호명'].values),
+                    category = list(data['업종분류'].values),
                     pos_data = zip(lats, lngs)
                     )
 

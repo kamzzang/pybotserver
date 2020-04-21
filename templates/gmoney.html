@@ -11,6 +11,12 @@
         padding: 0px
     }
 </style>
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=6nk39jrdys"></script>
+<script type="text/javascript" src="{{ url_for('static', filename = 'MarkerOverlappingRecognizer.js') }}"></script>
 {% endblock %}
 
 {% block body %}
@@ -63,16 +69,12 @@
     </div>
 </form>
 <br>
-<div id="map" style="width:100%;height:600px;"></div>
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=e4ae1c7f7559aaf64f47cbf9845f6cf8"></script>
-<script>
-var mapContainer = document.getElementById('map'), // 지도를 표시할 div
-    mapOption = {
-        center: new kakao.maps.LatLng({{center_lat}}, {{center_lng}}), // 지도의 중심좌표
-        level: 4 // 지도의 확대 레벨
-    };
+<div id="map" style="width:100%;height:600px"></div>
 
-var map = new kakao.maps.Map(mapContainer, mapOption); // 지도를 생성합니다
+<script>
+var MARKER_ICON_URL = 'https://ssl.pstatic.net/static/maps/img/icons/sp_pins_spot_v3.png';
+var MARKER_HIGHLIGHT_ICON_URL = 'https://ssl.pstatic.net/static/maps/img/icons/sp_pins_spot_v3_over.png';
+    
 
 // 마커를 표시할 위치와 title 객체 배열입니다
 var titles = [];
@@ -82,52 +84,139 @@ var titles = [];
 
 var positions = [];
 {% for lat, lng in pos_data %}
-    positions.push({'latlng' : new kakao.maps.LatLng({{ lat }}, {{ lng }})});
+    positions.push({'latlng' : new naver.maps.LatLng({{ lat }}, {{ lng }})});
 {% endfor %}
 
-for (var i = 0; i < positions.length; i ++) {
-    // 마커를 생성합니다
-    var marker = new kakao.maps.Marker({
-        map: map, // 마커를 표시할 지도
+var categories = [];
+{% for i in category %}
+    categories.push({{ i }});
+{% endfor %}
+
+
+var map = new naver.maps.Map('map', {
+    center: new naver.maps.LatLng({{center_lat}}, {{center_lng}}),
+    level: 10,
+    zoomControl: true, //줌 컨트롤의 표시 여부
+        zoomControlOptions: { //줌 컨트롤의 옵션
+            position: naver.maps.Position.TOP_RIGHT
+        }
+});
+
+var recognizer = new MarkerOverlappingRecognizer({
+        highlightRect: false,
+        tolerance: 5
+    });
+    
+recognizer.setMap(map);
+
+var bounds = map.getBounds(),
+    southWest = bounds.getSW(),
+    northEast = bounds.getNE(),
+    lngSpan = northEast.lng() - southWest.lng(),
+    latSpan = northEast.lat() - southWest.lat();
+
+function highlightMarker(marker) {
+    var icon = marker.getIcon();
+
+    if (icon.url !== MARKER_HIGHLIGHT_ICON_URL) {
+        icon.url = MARKER_HIGHLIGHT_ICON_URL;
+        marker.setIcon(icon);
+    }
+
+    marker.setZIndex(1000);
+}
+
+function unhighlightMarker(marker) {
+    var icon = marker.getIcon();
+
+    if (icon.url === MARKER_HIGHLIGHT_ICON_URL) {
+        icon.url = MARKER_ICON_URL;
+        marker.setIcon(icon);
+    }
+
+    marker.setZIndex(100);
+}
+
+var markers = [],
+    infoWindows = [];
+
+    for (var i = 0; i < positions.length; i ++) {
+
+    var position = new naver.maps.LatLng(
+        southWest.lat() + latSpan * Math.random(),
+        southWest.lng() + lngSpan * Math.random());
+
+    var marker = new naver.maps.Marker({
+        map: map,
         position: positions[i].latlng, // 마커의 위치
-        clickable: true // 마커를 클릭했을 때 지도의 클릭 이벤트가 발생하지 않도록 설정합니다
+        title: titles[i].title,
+        icon: {
+            url: MARKER_ICON_URL,
+            size: new naver.maps.Size(24, 37),
+            anchor: new naver.maps.Point(12, 37),
+            origin: categories[i]
+        },
+        shape: {
+            coords: [11, 0, 9, 0, 6, 1, 4, 2, 2, 4,
+                0, 8, 0, 12, 1, 14, 2, 16, 5, 19,
+                5, 20, 6, 23, 8, 26, 9, 30, 9, 34,
+                13, 34, 13, 30, 14, 26, 16, 23, 17, 20,
+                17, 19, 20, 16, 21, 14, 22, 12, 22, 12,
+                22, 8, 20, 4, 18, 2, 16, 1, 13, 0],
+            type: 'poly'
+        },
+        zIndex: 100
     });
 
-    // 마커에 표시할 인포윈도우를 생성합니다
-    var infowindow = new kakao.maps.InfoWindow({
-        content: titles[i].title, // 인포윈도우에 표시할 내용
-        removable : true // 인포윈도우를 닫을 수 있는 x버튼이 표시
+    marker.addListener('mouseover', function(e) {
+            highlightMarker(e.overlay);
+    });
+    marker.addListener('mouseout', function(e) {
+        unhighlightMarker(e.overlay);
+    });
+    marker.addListener('click', function(e) {
+        var m = e.overlay;
+
+        alert(m.title);
     });
 
-    // 마커에 mouseover 이벤트와 mouseout 이벤트를 등록합니다
-    // 이벤트 리스너로는 클로저를 만들어 등록합니다
-    // for문에서 클로저를 만들어 주지 않으면 마지막 마커에만 이벤트가 등록됩니다
-<!--    kakao.maps.event.addListener(marker, 'mouseover', makeOverListener(map, marker, infowindow));-->
-    kakao.maps.event.addListener(marker, 'mouseout', makeOutListener(infowindow));
-    kakao.maps.event.addListener(marker, 'click', clickListener(map, marker, infowindow));
-}
+    recognizer.add(marker);
 
-// 인포윈도우를 표시하는 함수입니다
-function clickListener(map, marker, infowindow) {
-    return function() {
-        infowindow.close();
-        infowindow.open(map, marker);
-    };
-}
+    window.MARKER = marker;
 
-// 인포윈도우를 표시하는 클로저를 만드는 함수입니다
-function makeOverListener(map, marker, infowindow) {
-    return function() {
-        infowindow.open(map, marker);
     };
-}
 
-// 인포윈도우를 닫는 클로저를 만드는 함수입니다
-function makeOutListener(infowindow) {
-    return function() {
-        infowindow.close();
-    };
-}
+    // var infoWindow = new naver.maps.InfoWindow({
+    //     content: titles[i].title
+    // });
+
+    
+
+    var overlapCoverMarker = null;
+
+    naver.maps.Event.addListener(recognizer, 'overlap', function(list) {
+        if (overlapCoverMarker) {
+            unhighlightMarker(overlapCoverMarker);
+        }
+
+        overlapCoverMarker = list[0].marker;
+
+        naver.maps.Event.once(overlapCoverMarker, 'mouseout', function() {
+            highlightMarker(overlapCoverMarker);
+        });
+    });
+
+    naver.maps.Event.addListener(recognizer, 'clickItem', function(e) {
+        recognizer.hide();
+
+        if (overlapCoverMarker) {
+            unhighlightMarker(overlapCoverMarker);
+
+            overlapCoverMarker = null;
+        }
+    });
+
+    // map.setZoom(7);
 
 </script>
 {% endblock %}

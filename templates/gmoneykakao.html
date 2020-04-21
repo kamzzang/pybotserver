@@ -1,64 +1,133 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>카테고리로 장소 검색하기</title>
+{% extends 'base.html' %}
 
-</head>
-<body>
-<p style="margin-top:-12px">
-    <em class="link">
-        <a href="/web/documentation/#CategoryCode" target="_blank">카테고리 코드목록을 보시려면 여기를 클릭하세요!</a>
-    </em>
-</p>
-<div id="map" style="width:100%;height:350px;"></div>
+{% block head %}
+<title>용인시 지역화폐 가맹점 검색 서비스</title>
+<style>
+    html,
+    body {
+        height: 100%;
+        width: 100%;
+        margin: 0px;
+        padding: 0px
+    }
+</style>
+{% endblock %}
 
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=e4ae1c7f7559aaf64f47cbf9845f6cf8&libraries=services"></script>
+{% block body %}
+<br>
+<h1>용인시 {{selected_gu}} {{selected_dong}} 지역화폐 가맹점</h1>
+
+<form action='{{ url_for("search") }}' method='POST'>
+    <div class="input-group">
+            <select class="custom-select" id="select_gu" name="select_gu" onchange="categoryChange(this)">
+                {% for gu in ['기흥구', '수지구'] %}
+                    {% if gu == selected_gu %}
+                        <option value="{{ gu }}" selected>{{ gu }}</option>
+                    {% else %}
+                        <option value="{{ gu }}">{{ gu }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <select class="custom-select" id="select_dong" name="select_dong">
+                {% for dong in dong_list %}
+                    {% if dong == selected_dong %}
+                        <option value="{{ dong }}" selected>{{ dong }}</option>
+                    {% else %}
+                        <option value="{{ dong }}">{{ dong }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <script type="text/javascript">
+            function categoryChange(e) {
+                var giheung = ['고매동',  '공세동',  '구갈동',  '농서동',  '동백동',  '마북동',  '보라동',
+                                '보정동',  '상갈동',  '상하동',  '서천동',  '신갈동',  '언남동',  '영덕동',  '지곡동',  '청덕동',  '하갈동'];
+                var suji = ['고기동', '동천동', '상현동', '성복동', '신봉동', '죽전동', '풍덕천동'];
+                var target = document.getElementById("select_dong");
+            
+                if(e.value == "기흥구") var d = giheung;
+                else if(e.value == "수지구") var d = suji;
+            
+                target.options.length = 0;
+            
+                for (x in d) {
+                    var opt = document.createElement("option");
+                    opt.value = d[x];
+                    opt.innerHTML = d[x];
+                    target.appendChild(opt);
+                }
+            }
+            </script>
+        <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="submit">Search</button>
+        </div>
+    </div>
+</form>
+<br>
+<div id="map" style="width:100%;height:600px;"></div>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=e4ae1c7f7559aaf64f47cbf9845f6cf8"></script>
 <script>
-// 마커를 클릭하면 장소명을 표출할 인포윈도우 입니다
-var infowindow = new kakao.maps.InfoWindow({zIndex:1});
-
 var mapContainer = document.getElementById('map'), // 지도를 표시할 div
     mapOption = {
-        center: new kakao.maps.LatLng(37.566826, 126.9786567), // 지도의 중심좌표
-        level: 3 // 지도의 확대 레벨
+        center: new kakao.maps.LatLng({{center_lat}}, {{center_lng}}), // 지도의 중심좌표
+        level: 4 // 지도의 확대 레벨
     };
 
-// 지도를 생성합니다
-var map = new kakao.maps.Map(mapContainer, mapOption);
+var map = new kakao.maps.Map(mapContainer, mapOption); // 지도를 생성합니다
 
-// 장소 검색 객체를 생성합니다
-var ps = new kakao.maps.services.Places(map);
+// 마커를 표시할 위치와 title 객체 배열입니다
+var titles = [];
+{% for title in titles %}
+    titles.push({'title' : "{{ title }}"});
+{% endfor %}
 
-// 카테고리로 은행을 검색합니다
-ps.categorySearch('BK9', placesSearchCB, {useMapBounds:true});
+var positions = [];
+{% for lat, lng in pos_data %}
+    positions.push({'latlng' : new kakao.maps.LatLng({{ lat }}, {{ lng }})});
+{% endfor %}
 
-// 키워드 검색 완료 시 호출되는 콜백함수 입니다
-function placesSearchCB (data, status, pagination) {
-    if (status === kakao.maps.services.Status.OK) {
-        for (var i=0; i<data.length; i++) {
-            displayMarker(data[i]);
-        }
-    }
-}
-
-// 지도에 마커를 표시하는 함수입니다
-function displayMarker(place) {
-    // 마커를 생성하고 지도에 표시합니다
+for (var i = 0; i < positions.length; i ++) {
+    // 마커를 생성합니다
     var marker = new kakao.maps.Marker({
-        map: map,
-        position: new kakao.maps.LatLng(place.y, place.x)
+        map: map, // 마커를 표시할 지도
+        position: positions[i].latlng, // 마커의 위치
+        clickable: true // 마커를 클릭했을 때 지도의 클릭 이벤트가 발생하지 않도록 설정합니다
     });
-    console.log(place.y, place.x);
-    // 마커에 클릭이벤트를 등록합니다
-    kakao.maps.event.addListener(marker, 'click', function() {
-        // 마커를 클릭하면 장소명이 인포윈도우에 표출됩니다
-        infowindow.setContent('<div style="padding:5px;font-size:12px;">' + place.place_name + '</div>');
-        infowindow.open(map, marker);
-        console.log(place.place_name, typeof place.place_name);
+
+    // 마커에 표시할 인포윈도우를 생성합니다
+    var infowindow = new kakao.maps.InfoWindow({
+        content: titles[i].title, // 인포윈도우에 표시할 내용
+        removable : true // 인포윈도우를 닫을 수 있는 x버튼이 표시
     });
+
+    // 마커에 mouseover 이벤트와 mouseout 이벤트를 등록합니다
+    // 이벤트 리스너로는 클로저를 만들어 등록합니다
+    // for문에서 클로저를 만들어 주지 않으면 마지막 마커에만 이벤트가 등록됩니다
+<!--    kakao.maps.event.addListener(marker, 'mouseover', makeOverListener(map, marker, infowindow));-->
+    kakao.maps.event.addListener(marker, 'mouseout', makeOutListener(infowindow));
+    kakao.maps.event.addListener(marker, 'click', clickListener(map, marker, infowindow));
 }
+
+// 인포윈도우를 표시하는 함수입니다
+function clickListener(map, marker, infowindow) {
+    return function() {
+        infowindow.close();
+        infowindow.open(map, marker);
+    };
+}
+
+// 인포윈도우를 표시하는 클로저를 만드는 함수입니다
+function makeOverListener(map, marker, infowindow) {
+    return function() {
+        infowindow.open(map, marker);
+    };
+}
+
+// 인포윈도우를 닫는 클로저를 만드는 함수입니다
+function makeOutListener(infowindow) {
+    return function() {
+        infowindow.close();
+    };
+}
+
 </script>
-</body>
-</html>
-</html>
+{% endblock %}

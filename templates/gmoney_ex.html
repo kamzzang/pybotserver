@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<title>경기도 지역화폐 가맹점</title>
+<title>용인시 지역화폐 가맹점 검색 서비스</title>
 <style>
     html,
     body {
@@ -11,16 +11,28 @@
         padding: 0px
     }
 </style>
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=e4ae1c7f7559aaf64f47cbf9845f6cf8"></script>
+<script type="text/javascript" src="./static/MarkerOverlappingRecognizer_kakao.js"></script>
 {% endblock %}
 
 {% block body %}
-<h1>용인시 기흥구 지역화폐 가맹점 찾기</h1>
+<br>
+<h1>용인시 {{selected_gu}} {{selected_dong}} 지역화폐 가맹점</h1>
 
 <form action='{{ url_for("search") }}' method='POST'>
     <div class="input-group">
             <select class="custom-select" id="select_gu" name="select_gu" onchange="categoryChange(this)">
-                <option value="기흥구" selected>기흥구</option>
-                <option value="수지구">수지구</option>
+                {% for gu in ['기흥구', '수지구'] %}
+                    {% if gu == selected_gu %}
+                        <option value="{{ gu }}" selected>{{ gu }}</option>
+                    {% else %}
+                        <option value="{{ gu }}">{{ gu }}</option>
+                    {% endif %}
+                {% endfor %}
             </select>
             <select class="custom-select" id="select_dong" name="select_dong">
                 {% for dong in dong_list %}
@@ -56,4 +68,149 @@
         </div>
     </div>
 </form>
+<br>
+<div id="map" style="width:100%;height:600px"></div>
+
+<script>
+var MARKER_ICON_URL = 'https://ssl.pstatic.net/static/maps/img/icons/sp_pins_spot_v3.png';
+var MARKER_HIGHLIGHT_ICON_URL = 'https://ssl.pstatic.net/static/maps/img/icons/sp_pins_spot_v3_over.png';
+    
+
+// 마커를 표시할 위치와 title 객체 배열입니다
+var titles = [];
+{% for title in titles %}
+    titles.push({'title' : "{{ title }}"});
+{% endfor %}
+
+var positions = [];
+{% for lat, lng in pos_data %}
+    positions.push({'latlng' : new kakao.maps.LatLng({{ lat }}, {{ lng }})});
+{% endfor %}
+
+var map = new kakao.maps.Map('map', {
+    center: new kakao.maps.LatLng({{center_lat}}, {{center_lng}}),
+    zoom: 15,
+    minZoom: 7 //지도의 최소 줌 레벨
+    // zoomControl: true, //줌 컨트롤의 표시 여부
+    //     zoomControlOptions: { //줌 컨트롤의 옵션
+    //         position: kakao.maps.Position.TOP_RIGHT
+    //     }
+});
+
+var recognizer = new MarkerOverlappingRecognizer({
+        highlightRect: false,
+        tolerance: 5
+    });
+    
+recognizer.setMap(map);
+
+var bounds = map.getBounds(),
+    southWest = bounds.getSW(),
+    northEast = bounds.getNE(),
+    lngSpan = northEast.lng() - southWest.lng(),
+    latSpan = northEast.lat() - southWest.lat();
+
+function highlightMarker(marker) {
+    var icon = marker.getIcon();
+
+    if (icon.url !== MARKER_HIGHLIGHT_ICON_URL) {
+        icon.url = MARKER_HIGHLIGHT_ICON_URL;
+        marker.setIcon(icon);
+    }
+
+    marker.setZIndex(1000);
+}
+
+function unhighlightMarker(marker) {
+    var icon = marker.getIcon();
+
+    if (icon.url === MARKER_HIGHLIGHT_ICON_URL) {
+        icon.url = MARKER_ICON_URL;
+        marker.setIcon(icon);
+    }
+
+    marker.setZIndex(100);
+}
+
+var markers = [],
+    infoWindows = [];
+
+    for (var i = 0; i < positions.length; i ++) {
+
+    var position = new kakao.maps.LatLng(
+        southWest.lat() + latSpan * Math.random(),
+        southWest.lng() + lngSpan * Math.random());
+
+    var marker = new kakao.maps.Marker({
+        map: map,
+        position: positions[i].latlng, // 마커의 위치
+        title: titles[i].title,
+        icon: {
+            url: MARKER_ICON_URL,
+            size: new kakao.maps.Size(24, 37),
+            anchor: new kakao.maps.Point(12, 37)
+        },
+        shape: {
+            coords: [11, 0, 9, 0, 6, 1, 4, 2, 2, 4,
+                0, 8, 0, 12, 1, 14, 2, 16, 5, 19,
+                5, 20, 6, 23, 8, 26, 9, 30, 9, 34,
+                13, 34, 13, 30, 14, 26, 16, 23, 17, 20,
+                17, 19, 20, 16, 21, 14, 22, 12, 22, 12,
+                22, 8, 20, 4, 18, 2, 16, 1, 13, 0],
+            type: 'poly'
+        },
+        zIndex: 100
+    });
+
+    marker.addListener('mouseover', function(e) {
+            highlightMarker(e.overlay);
+    });
+    marker.addListener('mouseout', function(e) {
+        unhighlightMarker(e.overlay);
+    });
+    marker.addListener('click', function(e) {
+        var m = e.overlay;
+
+        alert(m.title);
+    });
+
+    recognizer.add(marker);
+
+    window.MARKER = marker;
+
+    };
+
+    // var infoWindow = new kakao.maps.InfoWindow({
+    //     content: titles[i].title
+    // });
+
+    
+
+    var overlapCoverMarker = null;
+
+    kakao.maps.Event.addListener(recognizer, 'overlap', function(list) {
+        if (overlapCoverMarker) {
+            unhighlightMarker(overlapCoverMarker);
+        }
+
+        overlapCoverMarker = list[0].marker;
+
+        kakao.maps.Event.once(overlapCoverMarker, 'mouseout', function() {
+            highlightMarker(overlapCoverMarker);
+        });
+    });
+
+    kakao.maps.Event.addListener(recognizer, 'clickItem', function(e) {
+        recognizer.hide();
+
+        if (overlapCoverMarker) {
+            unhighlightMarker(overlapCoverMarker);
+
+            overlapCoverMarker = null;
+        }
+    });
+
+    map.setZoom(7);
+
+</script>
 {% endblock %}
