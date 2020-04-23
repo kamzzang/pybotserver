@@ -33,6 +33,7 @@ def gmoney():
                         center_lat = data['위도'].mean(), 
                         center_lng = data['경도'].mean(),
                         titles = list(data['상호명'].values),
+                        category = list(data['업종분류'].values),
                         pos_data = zip(lats, lngs)
                         )
 
@@ -75,16 +76,25 @@ def search():
         selected_gu = request.form.get('select_gu')
         selected_dong = request.form.get('select_dong')
         dong_list = list(df[df['도로명주소'].str.contains(selected_gu)]['동'].unique())
-        data = df[(df['구']==selected_gu) & (df['동']==selected_dong)]
+        data = df[df['동']==selected_dong] # df[(df['구']==selected_gu) & (df['동']==selected_dong)]
 
+        if selected_dong == '마북동':
+            center_lat = 37.3015845
+            center_lng = 127.1152282
+        elif selected_dong == '보정동':
+            center_lat = 37.3201946
+            center_lng = 127.1109263
+        else:
+            center_lat = data['위도'].mean()
+            center_lng = data['경도'].mean()
         lats = list(data['위도'].values)
         lngs = list(data['경도'].values)
         return render_template("gmoney.html", 
                     selected_gu = selected_gu,
                     selected_dong = selected_dong,
                     dong_list = dong_list,
-                    center_lat = data['위도'].mean(), 
-                    center_lng = data['경도'].mean(),
+                    center_lat = center_lat, 
+                    center_lng = center_lng,
                     titles = list(data['상호명'].values),
                     category = list(data['업종분류'].values),
                     pos_data = zip(lats, lngs)
