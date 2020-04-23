@@ -125,6 +125,8 @@ def ssearch():
         sdong_list = list(df_seoul[df_seoul['구']==sselected_gu]['동'].unique())
         if sselected_category == '전체':
             sdata = df_seoul[(df_seoul['구']==sselected_gu) & (df_seoul['동']==sselected_dong)]
+            center_lat = sdata['위도'].mean()
+            center_lng = sdata['경도'].mean()
         else:
             sdata = df_seoul[(df_seoul['구']==sselected_gu) & (df_seoul['동']==sselected_dong) & (df_seoul['업종']==sselected_category)]
             if sdata.empty:
