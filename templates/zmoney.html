@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<title>용인시 지역화폐 가맹점 검색 서비스</title>
+<title>서울특별시 제로페이 가맹점 검색 서비스</title>
 <style>
     html,
     body {
@@ -21,12 +21,12 @@
 
 {% block body %}
 <br>
-<h1>용인시 {{selected_gu}} {{selected_dong}} 지역화폐 가맹점</h1>
+<h1>서울특별시 {{selected_gu}} {{selected_dong}} 제로페이 가맹점</h1>
 
-<form action='{{ url_for("ysearch") }}' method='POST'>
+<form action='{{ url_for("ssearch") }}' method='POST'>
     <div class="input-group">
             <select class="custom-select" id="select_gu" name="select_gu" onchange="categoryChange(this)">
-                {% for gu in ['기흥구', '수지구'] %}
+                {% for gu in ['강동구'] %}
                     {% if gu == selected_gu %}
                         <option value="{{ gu }}" selected>{{ gu }}</option>
                     {% else %}
@@ -45,13 +45,12 @@
             </select>
             <script type="text/javascript">
             function categoryChange(e) {
-                var giheung = ['고매동',  '공세동',  '구갈동',  '농서동',  '동백동',  '마북동',  '보라동',
-                                '보정동',  '상갈동',  '상하동',  '서천동',  '신갈동',  '언남동',  '영덕동',  '지곡동',  '청덕동',  '하갈동'];
-                var suji = ['고기동', '동천동', '상현동', '성복동', '신봉동', '죽전동', '풍덕천동'];
+                var gangdong = ['강일동', '명일동', '상일동', '고덕동', '암사동', '천호동', '길동', '성내동', '둔촌동'];
+                // 서울 구 추가 시 구별 동 배열 추가
                 var target = document.getElementById("select_dong");
             
-                if(e.value == "기흥구") var d = giheung;
-                else if(e.value == "수지구") var d = suji;
+                if(e.value == "강동구") var d = gangdong;
+                // else if(e.value == "  ") var d = ??;
             
                 target.options.length = 0;
             
@@ -106,6 +105,7 @@ var categories = [];
 {% for i in category %}
     categories.push({{ i }});
 {% endfor %}
+
 
 var map = new naver.maps.Map('map', {
     center: new naver.maps.LatLng({{center_lat}}, {{center_lng}}),

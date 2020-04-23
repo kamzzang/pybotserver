@@ -15,15 +15,15 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=e4ae1c7f7559aaf64f47cbf9845f6cf8"></script>
-<script type="text/javascript" src="./static/MarkerOverlappingRecognizer_kakao.js"></script>
+<script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=6nk39jrdys"></script>
+<script type="text/javascript" src="{{ url_for('static', filename = 'MarkerOverlappingRecognizer.js') }}"></script>
 {% endblock %}
 
 {% block body %}
 <br>
 <h1>용인시 {{selected_gu}} {{selected_dong}} 지역화폐 가맹점</h1>
 
-<form action='{{ url_for("search") }}' method='POST'>
+<form action='{{ url_for("ysearch") }}' method='POST'>
     <div class="input-group">
             <select class="custom-select" id="select_gu" name="select_gu" onchange="categoryChange(this)">
                 {% for gu in ['기흥구', '수지구'] %}
@@ -34,7 +34,7 @@
                     {% endif %}
                 {% endfor %}
             </select>
-            <select class="custom-select" id="select_dong" name="select_dong">
+            <select class="custom-select" id="select_dong" name="select_dong" onChange="this.form.submit()">
                 {% for dong in dong_list %}
                     {% if dong == selected_dong %}
                         <option value="{{ dong }}" selected>{{ dong }}</option>
@@ -66,9 +66,24 @@
         <div class="input-group-append">
             <button class="btn btn-outline-secondary" type="submit">Search</button>
         </div>
+        <br>
+        <div class="container" >
+            <!-- <p> 카테고리 : 일반음식점-A, 병의원/약국-B, 학원-C, 문화/취미-D, 의류-E, 유통업-F, 보건위생-G, 기타-H </p> -->
+            <div class="btn-group" data-toggle="buttons">
+            {% for c in ['전체', '일반음식점', '병의원/약국', '학원', '문화/취미', '의류', '유통업', '보건위생', '기타'] %}
+                <label class="btn btn-default active">
+                {% if c == selected_category %}
+                    <input type="radio" name="options" id="option" autocomplete="off" onclick="this.form.submit()" value="{{ c }}" checked> {{ c }}
+                {% else %}
+                    <input type="radio" name="options" id="option" autocomplete="off" onclick="this.form.submit()" value="{{ c }}"> {{ c }}
+                {% endif %}
+                </label>
+            {% endfor %}
+            </div>
+        </div>
     </div>
 </form>
-<br>
+
 <div id="map" style="width:100%;height:600px"></div>
 
 <script>
@@ -84,17 +99,21 @@ var titles = [];
 
 var positions = [];
 {% for lat, lng in pos_data %}
-    positions.push({'latlng' : new kakao.maps.LatLng({{ lat }}, {{ lng }})});
+    positions.push({'latlng' : new naver.maps.LatLng({{ lat }}, {{ lng }})});
 {% endfor %}
 
-var map = new kakao.maps.Map('map', {
-    center: new kakao.maps.LatLng({{center_lat}}, {{center_lng}}),
-    zoom: 15,
-    minZoom: 7 //지도의 최소 줌 레벨
-    // zoomControl: true, //줌 컨트롤의 표시 여부
-    //     zoomControlOptions: { //줌 컨트롤의 옵션
-    //         position: kakao.maps.Position.TOP_RIGHT
-    //     }
+var categories = [];
+{% for i in category %}
+    categories.push({{ i }});
+{% endfor %}
+
+var map = new naver.maps.Map('map', {
+    center: new naver.maps.LatLng({{center_lat}}, {{center_lng}}),
+    level: 10,
+    zoomControl: true, //줌 컨트롤의 표시 여부
+        zoomControlOptions: { //줌 컨트롤의 옵션
+            position: naver.maps.Position.TOP_RIGHT
+        }
 });
 
 var recognizer = new MarkerOverlappingRecognizer({
@@ -137,18 +156,19 @@ var markers = [],
 
     for (var i = 0; i < positions.length; i ++) {
 
-    var position = new kakao.maps.LatLng(
+    var position = new naver.maps.LatLng(
         southWest.lat() + latSpan * Math.random(),
         southWest.lng() + lngSpan * Math.random());
 
-    var marker = new kakao.maps.Marker({
+    var marker = new naver.maps.Marker({
         map: map,
         position: positions[i].latlng, // 마커의 위치
         title: titles[i].title,
         icon: {
             url: MARKER_ICON_URL,
-            size: new kakao.maps.Size(24, 37),
-            anchor: new kakao.maps.Point(12, 37)
+            size: new naver.maps.Size(24, 37),
+            anchor: new naver.maps.Point(12, 37),
+            origin: categories[i]
         },
         shape: {
             coords: [11, 0, 9, 0, 6, 1, 4, 2, 2, 4,
@@ -180,7 +200,7 @@ var markers = [],
 
     };
 
-    // var infoWindow = new kakao.maps.InfoWindow({
+    // var infoWindow = new naver.maps.InfoWindow({
     //     content: titles[i].title
     // });
 
@@ -188,19 +208,19 @@ var markers = [],
 
     var overlapCoverMarker = null;
 
-    kakao.maps.Event.addListener(recognizer, 'overlap', function(list) {
+    naver.maps.Event.addListener(recognizer, 'overlap', function(list) {
         if (overlapCoverMarker) {
             unhighlightMarker(overlapCoverMarker);
         }
 
         overlapCoverMarker = list[0].marker;
 
-        kakao.maps.Event.once(overlapCoverMarker, 'mouseout', function() {
+        naver.maps.Event.once(overlapCoverMarker, 'mouseout', function() {
             highlightMarker(overlapCoverMarker);
         });
     });
 
-    kakao.maps.Event.addListener(recognizer, 'clickItem', function(e) {
+    naver.maps.Event.addListener(recognizer, 'clickItem', function(e) {
         recognizer.hide();
 
         if (overlapCoverMarker) {
@@ -210,7 +230,7 @@ var markers = [],
         }
     });
 
-    map.setZoom(7);
+    // map.setZoom(7);
 
 </script>
 {% endblock %}
