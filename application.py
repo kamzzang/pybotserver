@@ -53,23 +53,29 @@ slngs = list(sdata['경도'].values)
 # 카카오톡 챗봇
 # ---------------------------------------------------------------------------
 # 카카오톡 챗봇을 위한 데이터 준비
-url = 'https://movie.naver.com/movie/running/current.nhn' # 네이버 영화 웹 페이지 - 현재 상영영화 - 예매순
-response = requests.get(url)
-soup_rank = BeautifulSoup(response.text, 'html.parser')
+# url = 'https://movie.naver.com/movie/running/current.nhn' # 네이버 영화 웹 페이지 - 현재 상영영화 - 예매순
+# response = requests.get(url)
+# soup_rank = BeautifulSoup(response.text, 'html.parser')
 
-url = 'https://movie.naver.com/movie/running/premovie.nhn?order=reserve' # 네이버 영화 웹 페이지 - 개봉 예정 영화 - 예매순
-response = requests.get(url)
-soup_schdule = BeautifulSoup(response.text, 'html.parser')
+# url = 'https://movie.naver.com/movie/running/premovie.nhn?order=reserve' # 네이버 영화 웹 페이지 - 개봉 예정 영화 - 예매순
+# response = requests.get(url)
+# soup_schdule = BeautifulSoup(response.text, 'html.parser')
 # 카카오톡 챗봇 영화 제공서비스 실행 함수
 def movie_search(search_type, start_cnt): 
-    
+    movie_url = { 'rank' : 'https://movie.naver.com/movie/running/current.nhn', # 네이버영화 현재 상영작 예매순위 1~20위
+                  'schdule' : 'https://movie.naver.com/movie/running/premovie.nhn?order=reserve' # 네이버영화 개봉 예정작 예매순 1~20위 
+                }
+
     img_url = []        # 포스터 경로 url
     title = []          # 영화 제목
     description = []    # 세부 정보 : 영화 예매 순위 응답 - 평점과 예매율, 개봉 예정작 응답 - 개봉예정일
     link_url = []       # 영화 예매 및 정보가 제공되는 사이트로 연결을 위한 웹 페이지 경로 url
     
     if search_type == 'rank': # 영화 예매 순위 요청
-        soup = soup_rank
+        url = movie_url[search_type]
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # soup = soup_rank
         
         img_tag = soup.find_all("div", {"class":"thumb"})   # 영화 포스터 이미지, 제목, 정보제공 링크가 있는 태그
         cnt = 1
@@ -108,7 +114,10 @@ def movie_search(search_type, start_cnt):
         button_message = "영화 예매 순위 더보기" # 총 10위까지 응답을 위해서 첫 메시지에는 "순위 더보기 버튼"을 넣어주기 위한 버튼 클릭 시 발화되는 메세지
         
     else:
-        soup = soup_schdule
+        url = movie_url[search_type]
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # soup = soup_schdule
         
         img_tag = soup.find_all("div", {"class":"thumb"})
         cnt = 1
