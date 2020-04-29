@@ -445,7 +445,7 @@ def weather():
     return jsonify(res)
 
 
-@app.route('/locsearch', methods=['POST']) # 길찾기 정보 블럭에 스킬로 연결된 경로
+@application.route('/locsearch', methods=['POST']) # 길찾기 정보 블럭에 스킬로 연결된 경로
 def locsearch():
     req = request.get_json()
     
