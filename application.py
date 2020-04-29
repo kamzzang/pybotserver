@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 import pandas as pd
 import sys
 import sqlite3
+import json
 # crawling용 모듈
 from urllib.request import urlopen, Request
 from bs4 import BeautifulSoup
