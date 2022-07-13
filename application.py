@@ -386,28 +386,31 @@ def weather():
     html = page.read()
     soup = BeautifulSoup(html, 'html.parser')
     
-    if soup.find('span', {'class':'btn_select'})==None:    # 동일 시에 구만 다른 같은 이름의 동이 있을 경우 에러발생
-        region = soup.find('li', {'role' : 'option'}).text 
-    else:
-        region = soup.find('span', {'class':'btn_select'}).text
-    
+    # if soup.find('span', {'class':'btn_select'})==None:    # 동일 시에 구만 다른 같은 이름의 동이 있을 경우 에러발생
+    #     region = soup.find('li', {'role' : 'option'}).text
+    # else:
+    #     region = soup.find('span', {'class':'btn_select'}).text
+    region = soup.find('h2', {'class': 'title'}).text
+
     if 'sys_date_period' in params.keys(): # 주 단위의 날씨를 요청했을 경우
-        weekly_weather = soup.find_all('li', {'class':'date_info today'})
+        weekly_weather = soup.find_all('div', {'class': 'day_data'})
         answer = '%s 주간 기상정보입니다.\n\n' % (region)
-        answer += '요일 날짜 강수확률 기온\n'
         for i in weekly_weather:
-            answer += i.text.replace('     강수확률','').replace('    최저,최고 온도','').replace('  ','/')[0:-1] + '\n'
-            
+            answer += i.text.replace('오전', '').replace('오후', '').replace('기온', '') + '\n'
+
+
     elif 'sys_date' not in params.keys() or 'today' in params['sys_date']['value']: # 날짜 관련 문구가 없거나 "오늘"을 입력했을 경우
-        info = soup.find('p', {'class': 'cast_txt'}).text
-        temp_rain_info = soup.find_all('dd', {'class':'weather_item _dotWrapper'})
-        temp = temp_rain_info[0].text.replace('도','')
-        rain_rate = temp_rain_info[8].text
-        sub_info = soup.find_all('dd')
-        finedust = sub_info[2].text.replace('㎍/㎥', '㎍/㎥ ')
-        Ultrafinedust = sub_info[3].text.replace('㎍/㎥', '㎍/㎥ ')
-        
-        answer = '%s 현재 기상정보입니다.\n\n' %(region)
+        info = soup.find('p', {'class': 'summary'}).text
+        temp = soup.find('div', {'class': 'temperature_text'}).text[6:]
+
+        sub_info_1 = soup.find_all('span', {'class': 'rainfall'})
+        rain_rate = '오전 : %s, 오후 : %s' % (sub_info_1[0].text, sub_info_1[1].text)
+
+        sub_info_2 = soup.find_all('li', {'class': 'item_today level2'})
+        finedust = sub_info_2[0].text.split(' ')[3]
+        Ultrafinedust = sub_info_2[1].text.split(' ')[3]
+
+        answer = '%s 현재 기상정보입니다.\n\n' % (region)
         answer += info + '\n'
         answer += '기온 : ' + temp + '\n'
         answer += '강수확률 : ' + rain_rate + '\n'
@@ -419,17 +422,11 @@ def weather():
             text = text.split(' ')
             return ' '.join(text).split()
 
-        tomorrow = soup.find_all('li', {'class':'date_info today'})[1].text
+        tomorrow = soup.find_all('div', {'class': 'day_data'})[1].text
         tomorrow = convert(tomorrow)
-
-        info = soup.find('div', {'class':'tomorrow_area _mainTabContent'})
-        cast = info.find_all('div', {'class':'info_data'})
-
-        answer = '%s 내일 기상정보입니다.\n\n' %(region)
-        answer += '기온 : ' + tomorrow[-1] + '\n'
-        answer += '기상 : ' + convert(cast[0].text)[0] + '/' + convert(cast[1].text)[0] + '\n'
-        answer += '강수확률 : ' + tomorrow[3] + '/' + tomorrow[5] + '\n'
-        answer += '미세먼지 : ' + convert(cast[0].text)[-1] + '/' + convert(cast[1].text)[-1]
+        answer = '%s 내일 기상정보입니다.\n\n' % (region)
+        answer += '기온 : ' + tomorrow[-3].replace('기온', ' ') + '/ ' + tomorrow[-1].replace('기온', ' ') + '\n'
+        answer += '강수확률 : ' + tomorrow[2] + '\n'
         
     # 일반 텍스트형 응답용 메시지
     res = {
