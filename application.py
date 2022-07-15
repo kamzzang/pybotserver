@@ -63,7 +63,7 @@ slngs = list(sdata['경도'].values)
 # soup_schdule = BeautifulSoup(response.text, 'html.parser')
 # 카카오톡 챗봇 영화 제공서비스 실행 함수
 def movie_search(search_type, start_cnt): 
-    movie_url = { 'rank' : 'https://movie.naver.com/movie/running/current.nhn', # 네이버영화 현재 상영작 예매순위 1~20위
+    movie_url = { 'rank' : 'https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&qvt=0&query=%EB%B0%95%EC%8A%A4%EC%98%A4%ED%94%BC%EC%8A%A4', # 네이버 박스오피스 검색 결과 페이지
                   'schdule' : 'https://movie.naver.com/movie/running/premovie.nhn?order=reserve' # 네이버영화 개봉 예정작 예매순 1~20위 
                 }
 
@@ -77,42 +77,29 @@ def movie_search(search_type, start_cnt):
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
         # soup = soup_rank
-        
-        img_tag = soup.find_all("div", {"class":"thumb"})   # 영화 포스터 이미지, 제목, 정보제공 링크가 있는 태그
+
+        total_tag = soup.find("ul", {"class": "_panel"})
+
+        img_tag = soup.find_all("div", {"class":"thumb"})           # 영화 포스터 이미지, 제목 태그
+        link_tag = total_tag.find_all("a")                          # 영화 정보제공 링크
+        sub_tag = total_tag.find_all("span", {"class": "sub_text"}) # 관객수
+
         cnt = 1
-        for src in img_tag:
-            if cnt >= start_cnt and cnt < start_cnt+5:      # 카트 리스트 응답은 한번에 최대 5개만 가능하므로 정보를 5개만 저장함
+        for src, link, sub in zip(img_tag, link_tag, sub_tag):
+            if cnt >= start_cnt and cnt < start_cnt + 5:  # 카트 리스트 응답은 한번에 최대 5개만 가능하므로 정보를 5개만 저장함
                 src_img = src.find('img')
                 img_url.append(src_img.get('src'))
                 title.append(src_img.get('alt'))
-
-                src_link = src.find('a')
-                link_url.append('https://movie.naver.com' + src_link.get('href')) # 링크 url 완성
+                link_url.append('https://search.naver.com/search.naver' + link.get('href'))
+                description.append('관객수 : ' + sub.text)
             cnt+=1
+
         img_url.insert(0,'')            # 카트 리스트로 응답을 보내기 위해서 위해 첫 인덱스에는 제목같은 내용이 들어가므로 각 데이터에 내용 삽입
-        title.insert(0,'영화 예매 순위') # 카트 리스트 제목
+        title.insert(0,'박스오피스 순위')  # 카트 리스트 제목
         link_url.insert(0,url)          # 카트 리스트 제목란은 크롤링 페이지로 이동가능하도록 링크 삽입
-
-        get_score = soup.find_all("span",{"class" : "num"}) # 평점과 예매율이 있는 태크
-        cnt=1
-        temp=''
-        for i in get_score:
-            if start_cnt == 1:
-                if cnt >= 1 and cnt < 11: # 평점, 예매율이 번갈아 가면서 저장되기 때문에 5개의 영화에 대해서 총 10개의 데이터를 받음
-                    if cnt % 2 == 1: 
-                        temp = i.text
-                    else:
-                        description.append('평점 : ' + temp + '\t' + '예매율 : ' + i.text + '%') # 세부 정보에 평점과 예매율 저장
-            else:
-                if cnt >= 11 and cnt < 21: 
-                    if cnt % 2 == 1: 
-                        temp = i.text
-                    else:
-                        description.append('평점 : ' + temp + '\t' + '예매율 : ' + i.text + '%')
-            cnt+=1
         description.insert(0,'')
         
-        button_message = "영화 예매 순위 더보기" # 총 10위까지 응답을 위해서 첫 메시지에는 "순위 더보기 버튼"을 넣어주기 위한 버튼 클릭 시 발화되는 메세지
+        button_message = "박스오피스 순위 더보기" # 총 10위까지 응답을 위해서 첫 메시지에는 "순위 더보기 버튼"을 넣어주기 위한 버튼 클릭 시 발화되는 메세지
         
     else:
         url = movie_url[search_type]
