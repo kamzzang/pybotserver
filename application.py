@@ -76,6 +76,10 @@ def movie_search(search_type, start_cnt):
     link_url = []  # 영화 예매 및 정보가 제공되는 사이트로 연결을 위한 웹 페이지 경로 url
 
     if search_type == 'rank':  # 영화 예매 순위 요청
+        if start_cnt == 1:
+            end_cnt = 5
+        else:
+            end_cnt = 10
         url = movie_url[search_type]
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -89,7 +93,7 @@ def movie_search(search_type, start_cnt):
 
         cnt = 1
         for src, link, sub in zip(img_tag, link_tag, sub_tag):
-            if cnt >= start_cnt and cnt < start_cnt + 5:  # 카트 리스트 응답은 한번에 최대 5개만 가능하므로 정보를 5개만 저장함
+            if cnt >= start_cnt and cnt < end_cnt + 1:  # 카트 리스트 응답은 한번에 최대 5개만 가능하므로 정보를 5개만 저장함
                 src_img = src.find('img')
                 img_url.append(src_img.get('src'))
                 title.append(src_img.get('alt'))
@@ -105,6 +109,10 @@ def movie_search(search_type, start_cnt):
         button_message = "박스오피스 순위 더보기"  # 총 10위까지 응답을 위해서 첫 메시지에는 "순위 더보기 버튼"을 넣어주기 위한 버튼 클릭 시 발화되는 메세지
 
     else:
+        if start_cnt == 1:
+            end_cnt = 5
+        else:
+            end_cnt = 8
         url = movie_url[search_type]
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -113,7 +121,7 @@ def movie_search(search_type, start_cnt):
         img_tag = soup.find_all("div", {"class": "card_item"})
         cnt = 1
         for src in img_tag:
-            if cnt >= start_cnt and cnt < start_cnt + 5:
+            if cnt >= start_cnt and cnt < end_cnt + 1:
                 src_img = src.find('img')
                 img_url.append(src_img.get('src'))
                 title.append(src_img.get('alt'))
@@ -168,7 +176,11 @@ def movie_search(search_type, start_cnt):
     listItems = []
 
     cnt = 0
-    for i in range(6):  # 응답용 카트 리스트 타입의 res에 추가할 정보 완성
+    if search_type == 'schdule' and start_cnt == 6:
+        total_cnt = 3
+    else:
+        total_cnt = 5
+    for i in range(total_cnt + 1):  # 응답용 카트 리스트 타입의 res에 추가할 정보 완성
         if cnt == 0:
             itemtype = 'title'  # 카드 이미지의 첫 type은 title
         else:
