@@ -62,17 +62,20 @@ slngs = list(sdata['경도'].values)
 # response = requests.get(url)
 # soup_schdule = BeautifulSoup(response.text, 'html.parser')
 # 카카오톡 챗봇 영화 제공서비스 실행 함수
-def movie_search(search_type, start_cnt): 
-    movie_url = { 'rank' : 'https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&qvt=0&query=%EB%B0%95%EC%8A%A4%EC%98%A4%ED%94%BC%EC%8A%A4', # 네이버 박스오피스 검색 결과 페이지
-                  'schdule' : 'https://movie.naver.com/movie/running/premovie.nhn?order=reserve' # 네이버영화 개봉 예정작 예매순 1~20위 
-                }
+def movie_search(search_type, start_cnt):
+    movie_url = {
+        'rank': 'https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&qvt=0&query=%EB%B0%95%EC%8A%A4%EC%98%A4%ED%94%BC%EC%8A%A4',
+        # 네이버 박스오피스 검색 결과 페이지
+        'schdule': 'https://search.naver.com/search.naver?where=nexearch&sm=tab_etc&qvt=0&query=%EA%B0%9C%EB%B4%89%EC%98%88%EC%A0%95%EC%98%81%ED%99%94'
+        # 네이버영화 개봉 예정작 예매순 1~20위
+        }
 
-    img_url = []        # 포스터 경로 url
-    title = []          # 영화 제목
-    description = []    # 세부 정보 : 영화 예매 순위 응답 - 평점과 예매율, 개봉 예정작 응답 - 개봉예정일
-    link_url = []       # 영화 예매 및 정보가 제공되는 사이트로 연결을 위한 웹 페이지 경로 url
-    
-    if search_type == 'rank': # 영화 예매 순위 요청
+    img_url = []  # 포스터 경로 url
+    title = []  # 영화 제목
+    description = []  # 세부 정보 : 영화 예매 순위 응답 - 평점과 예매율, 개봉 예정작 응답 - 개봉예정일
+    link_url = []  # 영화 예매 및 정보가 제공되는 사이트로 연결을 위한 웹 페이지 경로 url
+
+    if search_type == 'rank':  # 영화 예매 순위 요청
         url = movie_url[search_type]
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -80,9 +83,9 @@ def movie_search(search_type, start_cnt):
 
         total_tag = soup.find("ul", {"class": "_panel"})
 
-        img_tag = soup.find_all("div", {"class":"thumb"})           # 영화 포스터 이미지, 제목 태그
-        link_tag = total_tag.find_all("a")                          # 영화 정보제공 링크
-        sub_tag = total_tag.find_all("span", {"class": "sub_text"}) # 관객수
+        img_tag = soup.find_all("div", {"class": "thumb"})  # 영화 포스터 이미지, 제목 태그
+        link_tag = total_tag.find_all("a")  # 영화 정보제공 링크
+        sub_tag = total_tag.find_all("span", {"class": "sub_text"})  # 관객수
 
         cnt = 1
         for src, link, sub in zip(img_tag, link_tag, sub_tag):
@@ -92,94 +95,97 @@ def movie_search(search_type, start_cnt):
                 title.append(src_img.get('alt'))
                 link_url.append('https://search.naver.com/search.naver' + link.get('href'))
                 description.append('관객수 : ' + sub.text)
-            cnt+=1
+            cnt += 1
 
-        img_url.insert(0,'')            # 카트 리스트로 응답을 보내기 위해서 위해 첫 인덱스에는 제목같은 내용이 들어가므로 각 데이터에 내용 삽입
-        title.insert(0,'박스오피스 순위')  # 카트 리스트 제목
-        link_url.insert(0,url)          # 카트 리스트 제목란은 크롤링 페이지로 이동가능하도록 링크 삽입
-        description.insert(0,'')
-        
-        button_message = "박스오피스 순위 더보기" # 총 10위까지 응답을 위해서 첫 메시지에는 "순위 더보기 버튼"을 넣어주기 위한 버튼 클릭 시 발화되는 메세지
-        
+        img_url.insert(0, '')  # 카트 리스트로 응답을 보내기 위해서 위해 첫 인덱스에는 제목같은 내용이 들어가므로 각 데이터에 내용 삽입
+        title.insert(0, '박스오피스 순위')  # 카트 리스트 제목
+        link_url.insert(0, url)  # 카트 리스트 제목란은 크롤링 페이지로 이동가능하도록 링크 삽입
+        description.insert(0, '')
+
+        button_message = "박스오피스 순위 더보기"  # 총 10위까지 응답을 위해서 첫 메시지에는 "순위 더보기 버튼"을 넣어주기 위한 버튼 클릭 시 발화되는 메세지
+
     else:
         url = movie_url[search_type]
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
         # soup = soup_schdule
-        
-        img_tag = soup.find_all("div", {"class":"thumb"})
+
+        img_tag = soup.find_all("div", {"class": "card_item"})
         cnt = 1
         for src in img_tag:
-            if cnt >= start_cnt and cnt < start_cnt+5:
+            if cnt >= start_cnt and cnt < start_cnt + 5:
                 src_img = src.find('img')
                 img_url.append(src_img.get('src'))
                 title.append(src_img.get('alt'))
-
                 src_link = src.find('a')
-                link_url.append('https://movie.naver.com' + src_link.get('href'))
-            cnt+=1
-        img_url.insert(0,'')
-        title.insert(0,'개봉예정 영화')
-        link_url.insert(0,url)
-        
-        sch_date = soup.find_all("dl", {'class' : 'info_txt1'})
-        cnt=1
+                link_url.append('https://search.naver.com/search.naver' + src_link.get('href'))
+            cnt += 1
+        img_url.insert(0, '')
+        title.insert(0, '개봉예정 영화')
+        link_url.insert(0, url)
+
+        sch_date = soup.find_all("dl", {'class': 'info_group type_visible'})
+        cnt = 1
         for i in sch_date:
-            if cnt >= start_cnt and cnt < start_cnt+5:
-                temp = i.text.replace('\t','').replace('\n','').replace('\r','').split(',')
+            if cnt >= start_cnt and cnt < start_cnt + 5:
+                temp = i.text.replace('\t', '').replace('\n', '').replace('\r', '').split(',')
                 for text in temp:
-                    if '개봉' in text: temp=text
+                    if '개봉' in text: temp = text
                 temp = temp.split('|')[-1].split('감독')[0]
-                description.append(temp)
-            cnt+=1
-        description.insert(0,'')
-        
+                description.append(temp.replace('개봉', '').replace(' ', ''))
+            cnt += 1
+        description.insert(0, '')
+
         button_message = "개봉 예정 영화 더보기"
 
-    # 응답 메시지가 첫 메시지인지 더보기 요청인지에 따라 첫 메시지일 때만 "더보기" 버튼 생성, 순위 표시    
-    if start_cnt == 1: # 첫번째 응답 메시지에 순위와 출처 추가 및 버튼 생성
-        title[0] = title[0] + '(1위~5위)_출처: Naver영화' 
+    # 응답 메시지가 첫 메시지인지 더보기 요청인지에 따라 첫 메시지일 때만 "더보기" 버튼 생성, 순위 표시
+    if start_cnt == 1:  # 첫번째 응답 메시지에 순위와 출처 추가 및 버튼 생성
+        title[0] = title[0] + '(1위~5위)_출처: Naver영화'
         button_data = [
-                        {
-                          "type": "block",
-                          "label": "+ 더보기",
-                          "message" : button_message, # 버튼 클릭 시 사용자가 전송한 것과 동일하게 하는 메시지
-                          "data": {
-                            }
-                        }
-                      ]
-    else:
-        title[0] = title[0] + '(6위~10위)_출처: Naver영화'
-        button_data = [
-                {
-                  "type": "text", # 버튼 타입을 텍스트로 하고 라벨 및 메시지를 비우면 버튼이 나오지 않음(두 번의 메시지를 동일한 포맷으로 res 변수로 만들기 위함)
-                  "label": "",
-                  "message" : "",
-                  "data": {
-                    }
+            {
+                "type": "block",
+                "label": "+ 더보기",
+                "message": button_message,  # 버튼 클릭 시 사용자가 전송한 것과 동일하게 하는 메시지
+                "data": {
                 }
-              ]
-        
-        
-    listItems=[]
+            }
+        ]
+    else:
+        if search_type == 'rank':
+            title[0] = title[0] + '(6위~10위)_출처: Naver영화'
+        else:
+            title[0] = title[0] + '(6위~8위)_출처: Naver영화'
+        button_data = [
+            {
+                "type": "text",  # 버튼 타입을 텍스트로 하고 라벨 및 메시지를 비우면 버튼이 나오지 않음(두 번의 메시지를 동일한 포맷으로 res 변수로 만들기 위함)
+                "label": "",
+                "message": "",
+                "data": {
+                }
+            }
+        ]
 
-    cnt=0
-    for i in range(6): # 응답용 카트 리스트 타입의 res에 추가할 정보 완성
-        if cnt == 0: itemtype = 'title' # 카드 이미지의 첫 type은 title
-        else: itemtype = 'item'         # 카드 이미지의 제목 다음 type은 item
-            
+    listItems = []
+
+    cnt = 0
+    for i in range(6):  # 응답용 카트 리스트 타입의 res에 추가할 정보 완성
+        if cnt == 0:
+            itemtype = 'title'  # 카드 이미지의 첫 type은 title
+        else:
+            itemtype = 'item'  # 카드 이미지의 제목 다음 type은 item
+
         listItems.append({
-                "type": itemtype,               # 카드 리스트의 아이템 티입
-                "imageUrl": img_url[i],         # 이미지 링크 url
-                "title": title[i],              # 제목
-                "description": description[i],  # 세부 정보
-                "linkUrl": {
-                  "type": "OS",                 # PC나 모바일별 별도 url설정 가능하나 web용으로 동일 적용
-                    "webUrl": link_url[i]       # 영화 정보 링크 url
-                    }
-                })
-        cnt+=1
-        
+            "type": itemtype,  # 카드 리스트의 아이템 티입
+            "imageUrl": img_url[i],  # 이미지 링크 url
+            "title": title[i],  # 제목
+            "description": description[i],  # 세부 정보
+            "linkUrl": {
+                "type": "OS",  # PC나 모바일별 별도 url설정 가능하나 web용으로 동일 적용
+                "webUrl": link_url[i]  # 영화 정보 링크 url
+            }
+        })
+        cnt += 1
+
     return listItems, button_data
 
 @application.route("/")
