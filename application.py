@@ -87,16 +87,17 @@ def movie_search(search_type, start_cnt):
 
         total_tag = soup.find("ul", {"class": "_panel"})
 
-        img_tag = soup.find_all("div", {"class": "thumb"})  # 영화 포스터 이미지, 제목 태그
-        link_tag = total_tag.find_all("a")  # 영화 정보제공 링크
-        sub_tag = total_tag.find_all("span", {"class": "sub_text"})  # 관객수
+        title_tag = soup.find_all("strong", {"class": "name"})          # 영화 제목(이미지 이름인 경우 '임시 이미지'라고 뜨는 오류 개선) 24.2.4
+        img_tag = soup.find_all("div", {"class": "thumb"})              # 영화 포스터 이미지, 제목 태그
+        link_tag = total_tag.find_all("a")                              # 영화 정보제공 링크
+        sub_tag = total_tag.find_all("span", {"class": "sub_text"})     # 관객수
 
         cnt = 1
-        for src, link, sub in zip(img_tag, link_tag, sub_tag):
+        for src, title_text, link, sub in zip(img_tag, title_tag, link_tag, sub_tag):
             if cnt >= start_cnt and cnt < end_cnt + 1:  # 카트 리스트 응답은 한번에 최대 5개만 가능하므로 정보를 5개만 저장함
                 src_img = src.find('img')
                 img_url.append(src_img.get('src'))
-                title.append(src_img.get('alt'))
+                title.append(title_text.text)  # src_img.get('alt')) 24.2.4
                 link_url.append('https://search.naver.com/search.naver' + link.get('href'))
                 description.append('관객수 : ' + sub.text)
             cnt += 1
@@ -119,15 +120,18 @@ def movie_search(search_type, start_cnt):
         # soup = soup_schdule
 
         img_tag = soup.find_all("div", {"class": "card_item"})
+        title_tag = soup.find_all("div", {"class": "area_text_box"})  # 영화 제목(이미지 이름인 경우 '임시 이미지'라고 뜨는 오류 개선) 24.2.4
+
         cnt = 1
-        for src in img_tag:
+        for src, title_text in zip(img_tag, title_tag):
             if cnt >= start_cnt and cnt < end_cnt + 1:
                 src_img = src.find('img')
                 img_url.append(src_img.get('src'))
-                title.append(src_img.get('alt'))
+                title.append(title_text.find('a').text)  # src_img.get('alt')) 24.2.4
                 src_link = src.find('a')
                 link_url.append('https://search.naver.com/search.naver' + src_link.get('href'))
             cnt += 1
+
         img_url.insert(0, '')
         title.insert(0, '개봉예정 영화')
         link_url.insert(0, url)
